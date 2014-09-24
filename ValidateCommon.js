@@ -38,6 +38,6 @@ ValidateCommon = {
         this.RequireTrim = { 'value': /(^[^\s]{1}(.+)?[^\s]{1}$)|(^[^\s]{1}$)/, 'msg': '必填(无前后空格)' }
     },
     Messages: function () {
-
+        alert('dddd');
     }
 }
