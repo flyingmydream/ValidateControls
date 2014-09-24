@@ -41,12 +41,15 @@ ValidateControl = {
         //必填且不能有空格
         RequireCompact: { 'val': /^\S+$/, 'msg': '必填(无空格)' },
         //前后不能有空格
-        RequireTrim: { 'val': /(^[^\s]{1}(.+)?[^\s]{1}$)|(^[^\s]{1}$)/, 'msg': '必填(无前后空格)' }
+        RequireTrim: { 'val': /(^[^\s]{1}(.+)?[^\s]{1}$)|(^[^\s]{1}$)/, 'msg': '必填(无前后空格)' },
+
+        Success: { 'msg': '操作成功！' }
     },
     /*
      *定义全局变量，用来储存页面上所有标签的默认style内的样式
      */
     OldStyleList: {},
+    MsgDivs: {},
     /*
      **********************************
      *判断用户是否为第一次验证
@@ -65,10 +68,14 @@ ValidateControl = {
                 vResult = true;
             }
         }
+
+        if (!this.MsgDivs) {
+            this.MsgDivs = new Array();
+        }
         return vResult;
     },
     AddStyleValue: function (strFormKey, strTagKey, vStyle) {
-        if (this.OldStyleList[strFormKey]) {
+        if (this.OldStyleList[strFormKey] && vStyle) {
             this.OldStyleList[strFormKey][strTagKey] = vStyle;
         }
     },
@@ -76,11 +83,16 @@ ValidateControl = {
      **********************************
      *注：options为空则验证整个页面上控件
      *
-     *参数格式 {'parentID':'','customName',''}
+     *参数格式 {parentID:'',customName,'',submitBtn:object,errorShowType:''}
      *
-     *      parentID：为form的ID或属于表单功能的容器标签的ID；
+     *      parentID：为form的ID或属于表单功能的容器标签的ID
      *      customName：要验证的标签的自定义名称，写法如validate-data-aaa、validate-data-bbb、validate-data-ccc等
-     *     
+     *      submitBtn:表示当前用来提交表彰的按钮,为Object类型
+     *      errorShowType:错误信息的显示方式，此参数值的格式为以下几种：
+     *          default为默认所验证的控件边框变红，errorShowTyoe参数为空则为此方式验证；
+     *          msgButton为提示错误信息方式，错误信息显示到提交按钮上面；
+     *          msgDiv(id)为将错误信息提示到指定的标签中方式，括号必须是英文括号。divId为要显示错误信息的标签；
+     *          alert为以弹出框方式提示错误信息。
      **********************************
      */
     ValidateFun: function (options) {
@@ -108,113 +120,177 @@ ValidateControl = {
                 if (options && options.customName) {
                     vElementTypeName += '-' + options.customName;
                 }
-                //获得当前标签
+                //获得当前标签要验证的类型
                 var vValidateTypes = vNode.getAttribute(vElementTypeName);
                 if (vValidateTypes) {
+                    //如果是首次提交表单就将，标签原有的默认样式存储
                     if (vFirstSubmit) {
                         this.AddStyleValue(strFormKey, strFormKey + vNodeIndex, vNode.getAttribute('style'));
                     }
 
                     var vTypeValues = vValidateTypes.toString().split(' ');
-                    var vResult = true;
+                    var vNodeResult = { success: true };
                     for (var vIndex = 0; vIndex < vTypeValues.length; vIndex++) {
-                        if (!this.ValidateByType(vTypeValues[vIndex], vNode)) {
-                            vResult = false;
+                        vNodeResult = this.ValidateByType(vTypeValues[vIndex], vNode);
+                        if (!vNodeResult.success) {
+                            break;
                         }
                     }
+                    vValidateResult = vNodeResult.success;
+                    var errorParamsItem = { errorShowType: options.errorShowType, currentNode: vNode, strFormKey: strFormKey, strTagKey: strFormKey + vNodeIndex, submitBtn: options.submitBtn }
 
-                    if (vResult) {
-                        if (this.OldStyleList[strFormKey]) {
-                            if (this.OldStyleList[strFormKey][strFormKey + vNodeIndex]) {
-                                vNode.setAttribute('style', this.OldStyleList[strFormKey][strFormKey + vNodeIndex]);
-                            } else {
-                                vNode.removeAttribute('style');
-                            }
-                        }
+                    if (!options || !options.errorShowType || options.errorShowType == 'default') {
+                        this.ShowMessageInfo(vNodeResult, errorParamsItem);
                     } else {
-                        vNode.style.borderColor = '#FF0000';
-                        vValidateResult = false;
+                        if (!vNodeResult.success) {
+                            this.ShowMessageInfo(vNodeResult, errorParamsItem);
+                            break;
+                        }
                     }
                 }
             }
+        }
+        if (vValidateResult && options && options.errorShowType && options.errorShowType != 'default') {
+            this.ShowMessageInfo(vNodeResult, errorParamsItem);
         }
 
         return vValidateResult;
     },
     ValidateByType: function (vValidateType, vTagObj) {
-        var vResult = true;
+        var vJsonResult = { success: true, msg: '' };
         switch (vValidateType) {
             case 'Char':
                 if (!vTagObj.value.match(this.RegInfos.Char.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.Char.msg;
+                    vJsonResult.success = false;
                 }
                 break;
             case 'Chinese':
                 if (!vTagObj.value.match(this.RegInfos.Chinese.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.Chinese.msg;
+                    vJsonResult.success = false;
                 }
                 break;
             case 'English':
                 if (!vTagObj.value.match(this.RegInfos.English.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.English.msg;
+                    vJsonResult.success = false;
                 }
                 break;
             case 'IdCard':
                 if (!vTagObj.value.match(this.RegInfos.IdCard.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.IdCard.msg;
+                    vJsonResult.success = false;
                 }
                 break;
             case 'Money':
                 if (!vTagObj.value.match(this.RegInfos.Money.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.Money.msg;
+                    vJsonResult.success = false;
                 }
             case 'Numer':
                 if (!vTagObj.value.match(this.RegInfos.Numer.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.Numer.msg;
+                    vJsonResult.success = false;
                 }
                 break;
             case 'Phone':
                 if (!vTagObj.value.match(this.RegInfos.Phone.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.Phone.msg;
+                    vJsonResult.success = false;
                 }
                 break;
             case 'Mobile':
                 if (!vTagObj.value.match(this.RegInfos.Mobile.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.Mobile.msg;
+                    vJsonResult.success = false;
                 }
                 break;
             case 'Email':
                 if (!vTagObj.value.match(this.RegInfos.Email.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.Email.msg;
+                    vJsonResult.success = false;
                 }
                 break;
             case 'Url':
                 if (!vTagObj.value.match(this.RegInfos.Url.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.Url.msg;
+                    vJsonResult.success = false;
                 }
                 break;
             case 'Zip':
                 if (!vTagObj.value.match(this.RegInfos.Zip.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.Zip.msg;
+                    vJsonResult.success = false;
                 }
                 break;
             case 'Require':
                 if (!vTagObj.value.match(this.RegInfos.Require.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.Require.msg;
+                    vJsonResult.success = false;
                 }
                 break;
             case 'RequireCompact':
                 if (!vTagObj.value.match(this.RegInfos.RequireCompact.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.RequireCompact.msg;
+                    vJsonResult.success = false;
                 }
                 break;
             case 'RequireTrim':
                 if (!vTagObj.value.match(this.RegInfos.RequireTrim.val)) {
-                    vResult = false;
+                    vJsonResult.msg = this.RegInfos.RequireTrim.msg;
+                    vJsonResult.success = false;
                 }
                 break;
         }
 
-        return vResult;
+        return vJsonResult;
+    },
+    ShowMessageInfo: function (vNodeResult, paramsInfo) {
+        if (vNodeResult.success) {
+            if (!paramsInfo.errorShowType || paramsInfo.errorShowType == 'default') {
+                if (this.OldStyleList[paramsInfo.strFormKey]) {
+                    if (this.OldStyleList[paramsInfo.strFormKey][paramsInfo.strTagKey]) {
+                        paramsInfo.currentNode.setAttribute('style', this.OldStyleList[paramsInfo.strFormKey][paramsInfo.strTagKey]);
+                    } else {
+                        paramsInfo.currentNode.removeAttribute('style');
+                    }
+                }
+            } else if (paramsInfo.errorShowType == 'msgButton') {
+                if (this.MsgDivs && this.MsgDivs[paramsInfo.strFormKey]) {
+                    var vDivItem = paramsInfo.submitBtn.parentNode.querySelector('#' + this.MsgDivs[paramsInfo.strFormKey]);
+                    vDivItem.innerHTML = this.RegInfos.Success.msg;
+                }
+            } else if (paramsInfo.errorShowType.match('/^msgDiv\(.+\)$/')) {
+                var strDivId = paramsInfo.errorShowType.substring(paramsInfo.errorShowType.indexOf('(') + 1, paramsInfo.errorShowType.lastIndexOf(')'));
+                document.querySelector('#' + strDivId).innerHTML = this.RegInfos.Success.msg;
+            } else if (paramsInfo.errorShowType == 'alert') {
+                alert(this.RegInfos.Success.msg);
+            }
+        } else {
+            console.log(paramsInfo.errorShowType);
+            if (!paramsInfo.errorShowType || paramsInfo.errorShowType == 'default') {
+                paramsInfo.currentNode.style.borderColor = '#FF0000';
+            } else if (paramsInfo.errorShowType == 'msgButton') {
+                if (this.MsgDivs && this.MsgDivs[paramsInfo.strFormKey]) {
+                    var vDivItem = paramsInfo.submitBtn.parentNode.querySelector('#' + this.MsgDivs[paramsInfo.strFormKey]);
+                    vDivItem.innerHTML = vNodeResult.msg;
+                } else {
+                    var vDivItem = document.createElement("div");
+                    vDivItem.setAttribute('id', 'div_validate_' + new Date().getTime());
+                    vDivItem.setAttribute('style', 'color:red;');
+                    vDivItem.innerHTML = vNodeResult.msg;
+                    paramsInfo.submitBtn.parentNode.appendChild(vDivItem);
+
+                    this.MsgDivs[paramsInfo.strFormKey] = vDivItem.id;
+                }
+            } else if (paramsInfo.errorShowType.match('^msgDiv\(.+\)$')) {
+                var strDivId = paramsInfo.errorShowType.substring(paramsInfo.errorShowType.indexOf('(')+1, paramsInfo.errorShowType.lastIndexOf(')'));
+                document.querySelector('#' + strDivId).innerHTML = vNodeResult.msg;
+                
+            } else if (paramsInfo.errorShowType == 'alert') {
+                alert(vNodeResult.msg);
+            }
+        }
     }
 }
