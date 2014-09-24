@@ -1,0 +1,60 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title></title>
+    <style type="text/css">
+        .clearfloat:after{display:block;clear:both;content:"";visibility:hidden;height:0}
+        .clearfloat{zoom:1}
+        .ul_css
+        {
+            width:500px;
+            list-style-type: none;
+        }
+        .li_left
+        {
+            width:20%;
+            text-align:right;
+            float:left;
+        }
+        .li_right
+        {
+            width:80%;
+            float:left;
+        }
+    </style>
+    <script src="../ValidateControls.js" type="text/javascript"></script>
+    
+</head>
+<body>
+    <div id="divForm">
+        <ul class="ul_css clearfloat">
+            <li class="li_left">
+                姓名：
+            </li>
+            <li class="li_right">
+                <input type="text" validate-data="Require" style="border-color:yellow;" />
+            </li>
+            <li class="li_left">
+                性别：
+            </li>
+            <li class="li_right">
+                <input type="text" validate-data="Require" />
+            </li>
+            <li class="li_left">
+                年龄：
+            </li>
+            <li class="li_right">
+                <input type="text" validate-data="Require Numer" style="width:100px;" />
+            </li>
+            <li class="li_left">
+                身份证号：
+            </li>
+            <li class="li_right">
+                <input type="text" validate-data="Require" />
+            </li>
+        </ul>
+        <div><input type="button" value="确定" onclick="ValidateControl.ValidateFun({ 'parentID': 'divForm' })" /></div>
+    </div>
+</body>
+</html>
