@@ -43,7 +43,16 @@ ValidateControl = {
         //前后不能有空格
         RequireTrim: { 'val': /(^[^\s]{1}(.+)?[^\s]{1}$)|(^[^\s]{1}$)/, 'msg': '必填(无前后空格)' }
     },
+    /*
+     *定义全局变量，用来储存页面上所有标签的默认style内的样式
+     */
     OldStyleList: {},
+    /*
+     **********************************
+     *判断用户是否为第一次验证
+     *此方法为了添加页面上默认样式用
+     **********************************
+     */
     CheckFirstSubmit: function (strFormKey) {
         var vResult = false;
         if (!this.OldStyleList) {
