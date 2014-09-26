@@ -87,11 +87,15 @@ ValidateControl = {
      *
      *      parentID：为form的ID或属于表单功能的容器标签的ID
      *      customName：要验证的标签的自定义名称，写法如validate-data-aaa、validate-data-bbb、validate-data-ccc等
-     *      submitBtn:表示当前用来提交表彰的按钮,为Object类型
+     *      submitBtn:表示当前用来提交表单的按钮,为Object类型.当errorShowType='msgButton'时有效
      *      errorShowType:错误信息的显示方式，此参数值的格式为以下几种：
      *          default为默认所验证的控件边框变红，errorShowTyoe参数为空则为此方式验证；
-     *          msgButton为提示错误信息方式，错误信息显示到提交按钮上面；
-     *          msgDiv(id)为将错误信息提示到指定的标签中方式，括号必须是英文括号。divId为要显示错误信息的标签；
+     *          msgButton_Prefix为提示错误信息方式，错误信息显示到提交按钮上面。错误信息为验证规则中[]里边的内容加上验证控件中的内容；
+     *          msgButton_All为提示错误信息方式，错误信息显示到提交按钮上面。错误信息为验证规则中[]里边的内容；
+     *          msgDiv_Prefix(id)为将错误信息提示到指定的标签中方式，括号必须是英文括号。divId为要显示错误信息的标签。
+     *              错误信息为验证规则中[]里边的内容加上验证控件中的内容；
+     *          msgDiv_All(id)为将错误信息提示到指定的标签中方式，括号必须是英文括号。divId为要显示错误信息的标签。
+     *              错误信息为验证规则中[]里边的内容；
      *          alert为以弹出框方式提示错误信息。
      **********************************
      */
@@ -158,6 +162,16 @@ ValidateControl = {
     },
     ValidateByType: function (vValidateType, vTagObj) {
         var vJsonResult = { success: true, msg: '' };
+        if (!vValidateType) {
+            vJsonResult.success = false;
+        } else {
+            if (vValidateType.indexOf('Char[') > -1 || vValidateType == 'Char') {
+                if (!vTagObj.value.match(this.RegInfos.Char.val)) {
+                    vJsonResult.msg = this.RegInfos.Char.msg;
+                    vJsonResult.success = false;
+                }
+            }
+        }
         switch (vValidateType) {
             case 'Char':
                 if (!vTagObj.value.match(this.RegInfos.Char.val)) {
@@ -256,7 +270,7 @@ ValidateControl = {
                         paramsInfo.currentNode.removeAttribute('style');
                     }
                 }
-            } else if (paramsInfo.errorShowType == 'msgButton') {
+            } else if (paramsInfo.errorShowType == 'msgButton_Prefix') {
                 if (this.MsgDivs && this.MsgDivs[paramsInfo.strFormKey]) {
                     var vDivItem = paramsInfo.submitBtn.parentNode.querySelector('#' + this.MsgDivs[paramsInfo.strFormKey]);
                     vDivItem.innerHTML = this.RegInfos.Success.msg;
@@ -271,7 +285,7 @@ ValidateControl = {
             console.log(paramsInfo.errorShowType);
             if (!paramsInfo.errorShowType || paramsInfo.errorShowType == 'default') {
                 paramsInfo.currentNode.style.borderColor = '#FF0000';
-            } else if (paramsInfo.errorShowType == 'msgButton') {
+            } else if (paramsInfo.errorShowType == 'msgButton_Prefix') {
                 if (this.MsgDivs && this.MsgDivs[paramsInfo.strFormKey]) {
                     var vDivItem = paramsInfo.submitBtn.parentNode.querySelector('#' + this.MsgDivs[paramsInfo.strFormKey]);
                     vDivItem.innerHTML = vNodeResult.msg;
