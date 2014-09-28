@@ -310,9 +310,7 @@ ValidateControl = {
             //错误信息显示格式为空或default则将所验证的标签边框变红色
             if (!paramsInfo.errorShowType || paramsInfo.errorShowType == 'default') {
                 paramsInfo.currentNode.style.borderColor = '#FF0000';
-            }
-            //
-            else if (/^msgButton_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
+            } else if (/^msgButton_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
                 if (this.MsgDivs && this.MsgDivs[paramsInfo.strFormKey]) {
                     var vDivItem = paramsInfo.submitBtn.parentNode.querySelector('#' + this.MsgDivs[paramsInfo.strFormKey]);
                     vDivItem.innerHTML = vNodeResult.msg;
