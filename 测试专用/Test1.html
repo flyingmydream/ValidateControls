@@ -33,7 +33,7 @@
                 姓名：
             </li>
             <li class="li_right">
-                <input type="text" validate-data="Require" style="border-color:yellow;" />
+                <input type="text" validate-data="Require[姓名，]" style="border-color:yellow;" />
             </li>
             <li class="li_left">
                 性别：
@@ -45,7 +45,7 @@
                 年龄：
             </li>
             <li class="li_right">
-                <input type="text" validate-data="Require[年龄] Numer[年龄]" validate-name="年龄" style="width:100px; border-color:ActiveCaption;" />
+                <input type="text" validate-data="Require[年龄不能为空] Numer[年龄必须为数字]" style="width:100px; border-color:ActiveCaption;" />
             </li>
             <li class="li_left">
                 身份证号：
@@ -56,7 +56,7 @@
         </ul>
         <div>
             <div id="divMsg" style="width:500px; color:#FFFFFF; background-color:brown;"></div>
-            <input type="button" value="确定" onclick="ValidateControl.ValidateFun({ parentID: 'divForm', submitBtn: this, errorShowType: 'alert' })" />
+            <input type="button" value="确定" onclick="ValidateControl.ValidateFun({ parentID: 'divForm', submitBtn: this, errorShowType: 'msgButton_All' })" />
         </div>
     </div>
 </body>

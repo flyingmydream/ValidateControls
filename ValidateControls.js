@@ -43,12 +43,16 @@ ValidateControl = {
         //前后不能有空格
         RequireTrim: { 'val': /(^[^\s]{1}(.+)?[^\s]{1}$)|(^[^\s]{1}$)/, 'msg': '必填(无前后空格)' },
 
+        Error: { 'msg': '系统异常！' },
         Success: { 'msg': '操作成功！' }
     },
     /*
-     *定义全局变量，用来储存页面上所有标签的默认style内的样式
+     *定义全局变量，用来储存页面上所有要验证标签的默认style内的样式
      */
     OldStyleList: {},
+    /*
+     *定义全局变量，用来储存页面上所有表单对应提示信息的层
+     */
     MsgDivs: {},
     /*
      **********************************
@@ -74,6 +78,9 @@ ValidateControl = {
         }
         return vResult;
     },
+    /*
+     *将当前标签的默认样式储存到全局变量中
+     */
     AddStyleValue: function (strFormKey, strTagKey, vStyle) {
         if (this.OldStyleList[strFormKey] && vStyle) {
             this.OldStyleList[strFormKey][strTagKey] = vStyle;
@@ -81,22 +88,23 @@ ValidateControl = {
     },
     /*
      **********************************
+     *验证表单的主方法，所有要验证的表单必须且只用调用此方法
+     *
      *注：options为空则验证整个页面上控件
-     *
      *参数格式 {parentID:'',customName,'',submitBtn:object,errorShowType:''}
-     *
      *      parentID：为form的ID或属于表单功能的容器标签的ID
      *      customName：要验证的标签的自定义名称，写法如validate-data-aaa、validate-data-bbb、validate-data-ccc等
      *      submitBtn:表示当前用来提交表单的按钮,为Object类型.当errorShowType='msgButton'时有效
      *      errorShowType:错误信息的显示方式，此参数值的格式为以下几种：
      *          default为默认所验证的控件边框变红，errorShowTyoe参数为空则为此方式验证；
-     *          msgButton_Prefix为提示错误信息方式，错误信息显示到提交按钮上面。错误信息为验证规则中[]里边的内容加上验证控件中的内容；
-     *          msgButton_All为提示错误信息方式，错误信息显示到提交按钮上面。错误信息为验证规则中[]里边的内容；
+     *          msgButton_Prefix为提示错误信息方式，错误信息显示到提交按钮下面。错误信息为验证规则中[]里边的内容加上验证控件中的内容；
+     *          msgButton_All为提示错误信息方式，错误信息显示到提交按钮下面。错误信息为验证规则中[]里边的内容；
      *          msgDiv_Prefix(id)为将错误信息提示到指定的标签中方式，括号必须是英文括号。divId为要显示错误信息的标签。
      *              错误信息为验证规则中[]里边的内容加上验证控件中的内容；
      *          msgDiv_All(id)为将错误信息提示到指定的标签中方式，括号必须是英文括号。divId为要显示错误信息的标签。
      *              错误信息为验证规则中[]里边的内容；
-     *          alert为以弹出框方式提示错误信息。
+     *          alert_Prefix为以弹出框方式提示错误信息，错误信息为验证规则中[]里边的内容加上验证控件中的内容；
+     *          alert_All为以弹出框方式提示错误信息，错误信息为验证规则中[]里边的内容。
      **********************************
      */
     ValidateFun: function (options) {
@@ -127,22 +135,24 @@ ValidateControl = {
                 //获得当前标签要验证的类型
                 var vValidateTypes = vNode.getAttribute(vElementTypeName);
                 if (vValidateTypes) {
-                    //如果是首次提交表单就将，标签原有的默认样式存储
+                    //如果是首次提交表单就将标签原有的默认样式存储
                     if (vFirstSubmit) {
                         this.AddStyleValue(strFormKey, strFormKey + vNodeIndex, vNode.getAttribute('style'));
                     }
-
+                    //验证标签值对应标签中的所有验证类型是否合法
                     var vTypeValues = vValidateTypes.toString().split(' ');
                     var vNodeResult = { success: true };
                     for (var vIndex = 0; vIndex < vTypeValues.length; vIndex++) {
-                        vNodeResult = this.ValidateByType(vTypeValues[vIndex], vNode);
+                        vNodeResult = this.ValidateByType(vTypeValues[vIndex], vNode, options.errorShowType);
                         if (!vNodeResult.success) {
                             break;
                         }
                     }
+                    //给验证结果赋值，使其同步
                     vValidateResult = vNodeResult.success;
+                    //显示错误信息时需要的参数
                     var errorParamsItem = { errorShowType: options.errorShowType, currentNode: vNode, strFormKey: strFormKey, strTagKey: strFormKey + vNodeIndex, submitBtn: options.submitBtn }
-
+                    //显示错误信息
                     if (!options || !options.errorShowType || options.errorShowType == 'default') {
                         this.ShowMessageInfo(vNodeResult, errorParamsItem);
                     } else {
@@ -154,113 +164,128 @@ ValidateControl = {
                 }
             }
         }
+        //判断验证成功且当前提示信息不为默认方式的就显示成功的信息
         if (vValidateResult && options && options.errorShowType && options.errorShowType != 'default') {
             this.ShowMessageInfo(vNodeResult, errorParamsItem);
         }
 
         return vValidateResult;
     },
-    ValidateByType: function (vValidateType, vTagObj) {
+    /***************************
+     *根据标签中的验证类型，验证当前标签的值是否合法
+     *  vValidateType为当前标签的验证类型
+     *  vTagObj当前要验证的标签
+     *  errorShowType当前表单的错误提示信息格式
+     ***************************
+     */
+    ValidateByType: function (vValidateType, vTagObj, errorShowType) {
         var vJsonResult = { success: true, msg: '' };
-        if (!vValidateType) {
-            vJsonResult.success = false;
+        var vSystemError = false;
+
+        if (/^Char(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.Char.val)) {
+                vJsonResult.msg = this.RegInfos.Char.msg;
+                vJsonResult.success = false;
+            }
+        } else if (/^Chinese(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.Chinese.val)) {
+                vJsonResult.msg = this.RegInfos.Chinese.msg;
+                vJsonResult.success = false;
+            }
+        } else if (/^English(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.English.val)) {
+                vJsonResult.msg = this.RegInfos.English.msg;
+                vJsonResult.success = false;
+            }
+        } else if (/^IdCard(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.IdCard.val)) {
+                vJsonResult.msg = this.RegInfos.IdCard.msg;
+                vJsonResult.success = false;
+            }
+        } else if (/^Money(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.Money.val)) {
+                vJsonResult.msg = this.RegInfos.Money.msg;
+                vJsonResult.success = false;
+            }
+        } else if (/^Numer(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.Numer.val)) {
+                vJsonResult.msg = this.RegInfos.Numer.msg;
+                vJsonResult.success = false;
+            }
+        } else if (/^Phone(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.Phone.val)) {
+                vJsonResult.msg = this.RegInfos.Phone.msg;
+                vJsonResult.success = false;
+            }
+        } else if (/^Mobile(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.Mobile.val)) {
+                vJsonResult.msg = this.RegInfos.Mobile.msg;
+                vJsonResult.success = false;
+            }
+        } else if (/^Email(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.Email.val)) {
+                vJsonResult.msg = this.RegInfos.Email.msg;
+                vJsonResult.success = false;
+            }
+        } else if (/^Url(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.Url.val)) {
+                vJsonResult.msg = this.RegInfos.Url.msg;
+                vJsonResult.success = false;
+            }
+        } else if (/^Zip(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.Zip.val)) {
+                vJsonResult.msg = this.RegInfos.Zip.msg;
+                vJsonResult.success = false;
+            }
+        } else if (/^Require(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.Require.val)) {
+                vJsonResult.msg = this.RegInfos.Require.msg;
+                vJsonResult.success = false;
+            }
+        } else if (/^RequireCompact(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.RequireCompact.val)) {
+                vJsonResult.msg = this.RegInfos.RequireCompact.msg;
+                vJsonResult.success = false;
+            }
+        } else if (/^RequireTrim(\[.*\])?$/.test(vValidateType)) {
+            if (!vTagObj.value.match(this.RegInfos.RequireTrim.val)) {
+                vJsonResult.msg = this.RegInfos.RequireTrim.msg;
+                vJsonResult.success = false;
+            }
         } else {
-            if (vValidateType.indexOf('Char[') > -1 || vValidateType == 'Char') {
-                if (!vTagObj.value.match(this.RegInfos.Char.val)) {
-                    vJsonResult.msg = this.RegInfos.Char.msg;
-                    vJsonResult.success = false;
+            vJsonResult.msg = this.RegInfos.Error.msg;
+            vJsonResult.success = false;
+            vSystemError = true;
+        }
+
+        if (!vSystemError && !vJsonResult.success) {
+            var strText = /\[.*(?=\])/.exec(vValidateType);
+            if (errorShowType && errorShowType != 'default') {
+                strText = (strText) ? strText.toString().substr(1) : '';
+                if (/^\w*_Prefix(\()?/.test(errorShowType)) {
+                    vJsonResult.msg = strText + vJsonResult.msg;
+                } else if (/^\w*_All(\()?/.test(errorShowType)) {
+                    vJsonResult.msg = strText;
                 }
             }
-        }
-        switch (vValidateType) {
-            case 'Char':
-                if (!vTagObj.value.match(this.RegInfos.Char.val)) {
-                    vJsonResult.msg = this.RegInfos.Char.msg;
-                    vJsonResult.success = false;
-                }
-                break;
-            case 'Chinese':
-                if (!vTagObj.value.match(this.RegInfos.Chinese.val)) {
-                    vJsonResult.msg = this.RegInfos.Chinese.msg;
-                    vJsonResult.success = false;
-                }
-                break;
-            case 'English':
-                if (!vTagObj.value.match(this.RegInfos.English.val)) {
-                    vJsonResult.msg = this.RegInfos.English.msg;
-                    vJsonResult.success = false;
-                }
-                break;
-            case 'IdCard':
-                if (!vTagObj.value.match(this.RegInfos.IdCard.val)) {
-                    vJsonResult.msg = this.RegInfos.IdCard.msg;
-                    vJsonResult.success = false;
-                }
-                break;
-            case 'Money':
-                if (!vTagObj.value.match(this.RegInfos.Money.val)) {
-                    vJsonResult.msg = this.RegInfos.Money.msg;
-                    vJsonResult.success = false;
-                }
-            case 'Numer':
-                if (!vTagObj.value.match(this.RegInfos.Numer.val)) {
-                    vJsonResult.msg = this.RegInfos.Numer.msg;
-                    vJsonResult.success = false;
-                }
-                break;
-            case 'Phone':
-                if (!vTagObj.value.match(this.RegInfos.Phone.val)) {
-                    vJsonResult.msg = this.RegInfos.Phone.msg;
-                    vJsonResult.success = false;
-                }
-                break;
-            case 'Mobile':
-                if (!vTagObj.value.match(this.RegInfos.Mobile.val)) {
-                    vJsonResult.msg = this.RegInfos.Mobile.msg;
-                    vJsonResult.success = false;
-                }
-                break;
-            case 'Email':
-                if (!vTagObj.value.match(this.RegInfos.Email.val)) {
-                    vJsonResult.msg = this.RegInfos.Email.msg;
-                    vJsonResult.success = false;
-                }
-                break;
-            case 'Url':
-                if (!vTagObj.value.match(this.RegInfos.Url.val)) {
-                    vJsonResult.msg = this.RegInfos.Url.msg;
-                    vJsonResult.success = false;
-                }
-                break;
-            case 'Zip':
-                if (!vTagObj.value.match(this.RegInfos.Zip.val)) {
-                    vJsonResult.msg = this.RegInfos.Zip.msg;
-                    vJsonResult.success = false;
-                }
-                break;
-            case 'Require':
-                if (!vTagObj.value.match(this.RegInfos.Require.val)) {
-                    vJsonResult.msg = this.RegInfos.Require.msg;
-                    vJsonResult.success = false;
-                }
-                break;
-            case 'RequireCompact':
-                if (!vTagObj.value.match(this.RegInfos.RequireCompact.val)) {
-                    vJsonResult.msg = this.RegInfos.RequireCompact.msg;
-                    vJsonResult.success = false;
-                }
-                break;
-            case 'RequireTrim':
-                if (!vTagObj.value.match(this.RegInfos.RequireTrim.val)) {
-                    vJsonResult.msg = this.RegInfos.RequireTrim.msg;
-                    vJsonResult.success = false;
-                }
-                break;
         }
 
         return vJsonResult;
     },
+    /***************************
+     *显示错误信息的方法
+     *  vNodeResult为当前标签的验证结果
+     *  paramsInfo的值为如下：
+     *       { errorShowType: '', 当前错误提示信息格式
+     *         currentNode: object, 当前标签
+     *         strFormKey: '',  存储页面上某个表单中标签的默认样式或提示信息层的键值
+     *         strTagKey: '',   存储页面上某个标签默认样式的键值
+     *         submitBtn: object    当前表单的提交按钮
+     *        }
+     ***************************
+     */
     ShowMessageInfo: function (vNodeResult, paramsInfo) {
+        //表单数据验证成功
         if (vNodeResult.success) {
             if (!paramsInfo.errorShowType || paramsInfo.errorShowType == 'default') {
                 if (this.OldStyleList[paramsInfo.strFormKey]) {
@@ -270,22 +295,24 @@ ValidateControl = {
                         paramsInfo.currentNode.removeAttribute('style');
                     }
                 }
-            } else if (paramsInfo.errorShowType == 'msgButton_Prefix') {
+            } else if (/^msgButton_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
                 if (this.MsgDivs && this.MsgDivs[paramsInfo.strFormKey]) {
-                    var vDivItem = paramsInfo.submitBtn.parentNode.querySelector('#' + this.MsgDivs[paramsInfo.strFormKey]);
+                    var vDivItem = /\(\w+(?=\))/.exec(paramsInfo.errorShowType).toString().substr(1);
                     vDivItem.innerHTML = this.RegInfos.Success.msg;
                 }
-            } else if (paramsInfo.errorShowType.match('/^msgDiv\(.+\)$/')) {
+            } else if (/^msgDiv_(Prefix|All)\(\w+\)$/.test(paramsInfo.errorShowType)) {
                 var strDivId = paramsInfo.errorShowType.substring(paramsInfo.errorShowType.indexOf('(') + 1, paramsInfo.errorShowType.lastIndexOf(')'));
                 document.querySelector('#' + strDivId).innerHTML = this.RegInfos.Success.msg;
-            } else if (paramsInfo.errorShowType == 'alert') {
+            } else if (/^alert_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
                 alert(this.RegInfos.Success.msg);
             }
-        } else {
-            console.log(paramsInfo.errorShowType);
+        } else {//表单数据验证失败
+            //错误信息显示格式为空或default则将所验证的标签边框变红色
             if (!paramsInfo.errorShowType || paramsInfo.errorShowType == 'default') {
                 paramsInfo.currentNode.style.borderColor = '#FF0000';
-            } else if (paramsInfo.errorShowType == 'msgButton_Prefix') {
+            }
+            //
+            else if (/^msgButton_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
                 if (this.MsgDivs && this.MsgDivs[paramsInfo.strFormKey]) {
                     var vDivItem = paramsInfo.submitBtn.parentNode.querySelector('#' + this.MsgDivs[paramsInfo.strFormKey]);
                     vDivItem.innerHTML = vNodeResult.msg;
@@ -298,11 +325,11 @@ ValidateControl = {
 
                     this.MsgDivs[paramsInfo.strFormKey] = vDivItem.id;
                 }
-            } else if (paramsInfo.errorShowType.match('^msgDiv\(.+\)$')) {
-                var strDivId = paramsInfo.errorShowType.substring(paramsInfo.errorShowType.indexOf('(')+1, paramsInfo.errorShowType.lastIndexOf(')'));
+            } else if (/^msgDiv_(Prefix|All)\(\w+\)$/.test(paramsInfo.errorShowType)) {
+                var strDivId = /\(\w+(?=\))/.exec(paramsInfo.errorShowType).toString().substr(1);
                 document.querySelector('#' + strDivId).innerHTML = vNodeResult.msg;
-                
-            } else if (paramsInfo.errorShowType == 'alert') {
+
+            } else if (/^alert_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
                 alert(vNodeResult.msg);
             }
         }
