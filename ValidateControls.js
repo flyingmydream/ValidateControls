@@ -20,7 +20,7 @@ ValidateControl = {
         English: { 'val': /^[A-Za-z]+$/, 'msg': '只允许英文字母' },
 
         //身份证号验证
-        IdCard: { 'val': /^\d{15}(\d{2}[A-Za-z0-9\*])?$/, 'msg': '只能输入18位的身份证号码' },
+        IdCard: { 'val': /^\d{15}(\d{2}[A-Za-z0-9\*])?$/, 'msg': '只能输入15位或18位的身份证号码' },
         //金钱格式验证
         Money: { 'val': /^(([1-9](\d+)?)|0)(\.\d+)?$/, 'msg': '请输入金额' },
         //纯数字验证
@@ -302,7 +302,7 @@ ValidateControl = {
                 }
             } else if (/^msgDiv_(Prefix|All)\(\w+\)$/.test(paramsInfo.errorShowType)) {
                 var strDivId = paramsInfo.errorShowType.substring(paramsInfo.errorShowType.indexOf('(') + 1, paramsInfo.errorShowType.lastIndexOf(')'));
-                document.querySelector('#' + strDivId).innerHTML = this.RegInfos.Success.msg;
+                document.getElementById(strDivId).innerHTML = this.RegInfos.Success.msg;
             } else if (/^alert_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
                 alert(this.RegInfos.Success.msg);
             }
@@ -312,7 +312,7 @@ ValidateControl = {
                 paramsInfo.currentNode.style.borderColor = '#FF0000';
             } else if (/^msgButton_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
                 if (this.MsgDivs && this.MsgDivs[paramsInfo.strFormKey]) {
-                    var vDivItem = paramsInfo.submitBtn.parentNode.querySelector('#' + this.MsgDivs[paramsInfo.strFormKey]);
+                    var vDivItem = document.getElementById(this.MsgDivs[paramsInfo.strFormKey]);
                     vDivItem.innerHTML = vNodeResult.msg;
                 } else {
                     var vDivItem = document.createElement("div");
@@ -325,8 +325,7 @@ ValidateControl = {
                 }
             } else if (/^msgDiv_(Prefix|All)\(\w+\)$/.test(paramsInfo.errorShowType)) {
                 var strDivId = /\(\w+(?=\))/.exec(paramsInfo.errorShowType).toString().substr(1);
-                document.querySelector('#' + strDivId).innerHTML = vNodeResult.msg;
-
+                document.getElementById(strDivId).innerHTML = vNodeResult.msg;
             } else if (/^alert_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
                 alert(vNodeResult.msg);
             }
