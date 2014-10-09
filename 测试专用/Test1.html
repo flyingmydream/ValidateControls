@@ -45,18 +45,18 @@
                 年龄：
             </li>
             <li class="li_right">
-                <input type="text" validate-data="Require[年龄不能为空] Numer[年龄必须为数字]" style="width:100px; border-color:ActiveCaption;" />
+                <input type="text" validate-data="Require[年龄] Numer[年龄]" style="width:100px; border-color:ActiveCaption;" />
             </li>
             <li class="li_left">
                 身份证号：
             </li>
             <li class="li_right">
-                <input type="text" validate-data="Require IdCard" />
+                <input type="text" validate-data="Require[身份证号] IdCard" />
             </li>
         </ul>
         <div>
             <div id="divMsg" style="width:500px; color:#FFFFFF; background-color:brown;"></div>
-            <input type="button" value="确定" onclick="ValidateControl.ValidateFun({ parentID: 'divForm', submitBtn: this, errorShowType: 'msgButton_All' })" />
+            <input type="button" value="确定" onclick="ValidateControl.ValidateFun({ parentID: 'divForm', submitBtn: this, errorShowType: 'msgButton_Prefix' })" />
         </div>
     </div>
 </body>
