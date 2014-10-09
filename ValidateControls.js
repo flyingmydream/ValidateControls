@@ -92,7 +92,7 @@ ValidateControl = {
      *
      *注：options为空则验证整个页面上控件
      *参数格式 {parentID:'',customName,'',submitBtn:object,errorShowType:''}
-     *      parentID：为form的ID或属于表单功能的容器标签的ID
+     *      formOrDivID：为form的ID或属于表单功能的容器标签的ID
      *      customName：要验证的标签的自定义名称，写法如validate-data-aaa、validate-data-bbb、validate-data-ccc等
      *      submitBtn:表示当前用来提交表单的按钮,为Object类型.当errorShowType='msgButton'时有效
      *      errorShowType:错误信息的显示方式，此参数值的格式为以下几种：
@@ -113,18 +113,18 @@ ValidateControl = {
 
         var strFormKey = '';
         //判断并设置当前表单或表单数据的父容器ID
-        var vParent = {};
+        var vFormItem = {};
         if (options) {
-            vParent = document.getElementById(options.parentID);
-            strFormKey = options.parentID;
+            vFormItem = document.getElementById(options.formOrDivID);
+            strFormKey = options.formOrDivID;
         } else {
-            vParent = document;
+            vFormItem = document;
             strFormKey = 'document';
         }
         var vFirstSubmit = this.CheckFirstSubmit(strFormKey);
-
+       
         //查找属于当前表单区别中所有input标签
-        var vNodes = vParent.getElementsByTagName('input');
+        var vNodes = vFormItem.getElementsByTagName('input');
         for (var vNodeIndex = 0; vNodeIndex < vNodes.length; vNodeIndex++) {
             var vNode = vNodes[vNodeIndex];
             if (vNode) {
@@ -139,6 +139,7 @@ ValidateControl = {
                     if (vFirstSubmit) {
                         this.AddStyleValue(strFormKey, strFormKey + vNodeIndex, vNode.getAttribute('style'));
                     }
+                    
                     //验证标签值对应标签中的所有验证类型是否合法
                     var vTypeValues = vValidateTypes.toString().split(' ');
                     var vNodeResult = { success: true };
@@ -151,7 +152,7 @@ ValidateControl = {
                     //给验证结果赋值，使其同步
                     vValidateResult = vNodeResult.success;
                     //显示错误信息时需要的参数
-                    var errorParamsItem = { errorShowType: options.errorShowType, currentNode: vNode, strFormKey: strFormKey, strTagKey: strFormKey + vNodeIndex, submitBtn: options.submitBtn }
+                    var errorParamsItem = { errorShowType: options.errorShowType, currentNode: vNode, strFormKey: strFormKey, strTagKey: strFormKey + vNodeIndex, formItem: vFormItem }
                     //显示错误信息
                     if (!options || !options.errorShowType || options.errorShowType == 'default') {
                         this.ShowMessageInfo(vNodeResult, errorParamsItem);
@@ -285,48 +286,48 @@ ValidateControl = {
      ***************************
      */
     ShowMessageInfo: function (vNodeResult, paramsInfo) {
-        //表单数据验证成功
-        if (vNodeResult.success) {
-            if (!paramsInfo.errorShowType || paramsInfo.errorShowType == 'default') {
-                if (this.OldStyleList[paramsInfo.strFormKey]) {
-                    if (this.OldStyleList[paramsInfo.strFormKey][paramsInfo.strTagKey]) {
-                        paramsInfo.currentNode.setAttribute('style', this.OldStyleList[paramsInfo.strFormKey][paramsInfo.strTagKey]);
-                    } else {
-                        paramsInfo.currentNode.removeAttribute('style');
-                    }
-                }
-            } else if (/^msgButton_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
-                if (this.MsgDivs && this.MsgDivs[paramsInfo.strFormKey]) {
-                    var vDivItem = /\(\w+(?=\))/.exec(paramsInfo.errorShowType).toString().substr(1);
-                    vDivItem.innerHTML = this.RegInfos.Success.msg;
-                }
-            } else if (/^msgDiv_(Prefix|All)\(\w+\)$/.test(paramsInfo.errorShowType)) {
-                var strDivId = paramsInfo.errorShowType.substring(paramsInfo.errorShowType.indexOf('(') + 1, paramsInfo.errorShowType.lastIndexOf(')'));
-                document.getElementById(strDivId).innerHTML = this.RegInfos.Success.msg;
-            } else if (/^alert_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
-                alert(this.RegInfos.Success.msg);
-            }
-        } else {//表单数据验证失败
-            //错误信息显示格式为空或default则将所验证的标签边框变红色
-            if (!paramsInfo.errorShowType || paramsInfo.errorShowType == 'default') {
-                paramsInfo.currentNode.style.borderColor = '#FF0000';
-            } else if (/^msgButton_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
-                if (this.MsgDivs && this.MsgDivs[paramsInfo.strFormKey]) {
-                    var vDivItem = document.getElementById(this.MsgDivs[paramsInfo.strFormKey]);
-                    vDivItem.innerHTML = vNodeResult.msg;
+        if (!paramsInfo.errorShowType || paramsInfo.errorShowType == 'default') {
+            if (vNodeResult.success) {
+                if (this.OldStyleList[paramsInfo.strFormKey] && this.OldStyleList[paramsInfo.strFormKey][paramsInfo.strTagKey]) {
+                    paramsInfo.currentNode.setAttribute('style', this.OldStyleList[paramsInfo.strFormKey][paramsInfo.strTagKey]);
                 } else {
+                    paramsInfo.currentNode.removeAttribute('style');
+                }
+            } else {
+                paramsInfo.currentNode.style.borderColor = '#FF0000';
+            }
+        } else if (/^msgButton_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
+            if (this.MsgDivs && this.MsgDivs[paramsInfo.strFormKey]) {
+                var vDivItem = document.getElementById(this.MsgDivs[paramsInfo.strFormKey]);
+                if (vNodeResult.success) {
+                    vDivItem.innerHTML = this.RegInfos.Success.msg;
+                } else {
+                    vDivItem.innerHTML = vNodeResult.msg;
+                }
+            } else {
+                if (!vNodeResult.success) {
                     var vDivItem = document.createElement("div");
                     vDivItem.setAttribute('id', 'div_validate_' + new Date().getTime());
                     vDivItem.setAttribute('style', 'color:red;');
                     vDivItem.innerHTML = vNodeResult.msg;
-                    paramsInfo.submitBtn.parentNode.appendChild(vDivItem);
+                    paramsInfo.formItem.appendChild(vDivItem);
 
                     this.MsgDivs[paramsInfo.strFormKey] = vDivItem.id;
                 }
-            } else if (/^msgDiv_(Prefix|All)\(\w+\)$/.test(paramsInfo.errorShowType)) {
-                var strDivId = /\(\w+(?=\))/.exec(paramsInfo.errorShowType).toString().substr(1);
-                document.getElementById(strDivId).innerHTML = vNodeResult.msg;
-            } else if (/^alert_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
+            }
+        } else if (/^msgDiv_(Prefix|All)\(\w+\)$/.test(paramsInfo.errorShowType)) {
+            var strDivId = /\(\w+(?=\))/.exec(paramsInfo.errorShowType).toString().substr(1);
+            var vDivItem = document.getElementById(strDivId);
+            vDivItem.style.display = 'block';
+            if (vNodeResult.success) {
+                vDivItem.innerHTML = this.RegInfos.Success.msg;
+            } else {
+                vDivItem.innerHTML = vNodeResult.msg;
+            }
+        } else if (/^alert_(Prefix|All)$/.test(paramsInfo.errorShowType)) {
+            if (vNodeResult.success) {
+                alert(this.RegInfos.Success.msg);
+            } else {
                 alert(vNodeResult.msg);
             }
         }

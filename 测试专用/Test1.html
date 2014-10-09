@@ -23,6 +23,7 @@
             float:left;
         }
     </style>
+    <script src="../TextDateControl.js" type="text/javascript"></script>
     <script src="../ValidateControls.js" type="text/javascript"></script>
     
 </head>
@@ -53,10 +54,16 @@
             <li class="li_right">
                 <input type="text" validate-data="Require[身份证号] IdCard" />
             </li>
+            <li class="li_left">
+                出生年月：
+            </li>
+            <li class="li_right">
+                <input type="date" />
+            </li>
         </ul>
         <div>
-            <div id="divMsg" style="width:500px; color:#FFFFFF; background-color:brown;"></div>
-            <input type="button" value="确定" onclick="ValidateControl.ValidateFun({ parentID: 'divForm', submitBtn: this, errorShowType: 'msgButton_Prefix' })" />
+            <div id="divMsg" style="width:500px; color:#FFFFFF; background-color:brown; display:none;"></div>
+            <input type="button" value="确定" onclick="ValidateControl.ValidateFun({ formOrDivID: 'divForm' })" />
         </div>
     </div>
 </body>
