@@ -91,10 +91,9 @@ ValidateControl = {
      *验证表单的主方法，所有要验证的表单必须且只用调用此方法
      *
      *注：options为空则验证整个页面上控件
-     *参数格式 {parentID:'',customName,'',submitBtn:object,errorShowType:''}
+     *参数格式 {parentID:'',customName,'',errorShowType:''}
      *      formOrDivID：为form的ID或属于表单功能的容器标签的ID
      *      customName：要验证的标签的自定义名称，写法如validate-data-aaa、validate-data-bbb、validate-data-ccc等
-     *      submitBtn:表示当前用来提交表单的按钮,为Object类型.当errorShowType='msgButton'时有效
      *      errorShowType:错误信息的显示方式，此参数值的格式为以下几种：
      *          default为默认所验证的控件边框变红，errorShowTyoe参数为空则为此方式验证；
      *          msgButton_Prefix为提示错误信息方式，错误信息显示到提交按钮下面。错误信息为验证规则中[]里边的内容加上验证控件中的内容；
@@ -118,6 +117,7 @@ ValidateControl = {
             vFormItem = document.getElementById(options.formOrDivID);
             strFormKey = options.formOrDivID;
         } else {
+            options = {};
             vFormItem = document;
             strFormKey = 'document';
         }
@@ -281,7 +281,6 @@ ValidateControl = {
      *         currentNode: object, 当前标签
      *         strFormKey: '',  存储页面上某个表单中标签的默认样式或提示信息层的键值
      *         strTagKey: '',   存储页面上某个标签默认样式的键值
-     *         submitBtn: object    当前表单的提交按钮
      *        }
      ***************************
      */
