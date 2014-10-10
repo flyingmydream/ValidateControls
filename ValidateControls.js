@@ -118,6 +118,7 @@ ValidateControl = {
             vFormItem = document.getElementById(options.formOrDivID);
             strFormKey = options.formOrDivID;
         } else {
+            options = {};
             vFormItem = document;
             strFormKey = 'document';
         }
