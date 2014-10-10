@@ -122,7 +122,7 @@ ValidateControl = {
             strFormKey = 'document';
         }
         var vFirstSubmit = this.CheckFirstSubmit(strFormKey);
-       
+
         //查找属于当前表单区别中所有input标签
         var vNodes = vFormItem.getElementsByTagName('input');
         for (var vNodeIndex = 0; vNodeIndex < vNodes.length; vNodeIndex++) {
@@ -139,7 +139,7 @@ ValidateControl = {
                     if (vFirstSubmit) {
                         this.AddStyleValue(strFormKey, strFormKey + vNodeIndex, vNode.getAttribute('style'));
                     }
-                    
+
                     //验证标签值对应标签中的所有验证类型是否合法
                     var vTypeValues = vValidateTypes.toString().split(' ');
                     var vNodeResult = { success: true };
